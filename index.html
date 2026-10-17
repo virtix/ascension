@@ -15,6 +15,9 @@ input{width:150px;vertical-align:middle}
 #clock{display:flex;align-items:baseline;gap:.3em;font:700 clamp(54px,14.25vmin,180px)/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.02em;white-space:nowrap}
 #tot{font-size:.28em;font-weight:500;opacity:.7}
 #phase{font-size:clamp(16px,3.4vmin,40px);letter-spacing:.32em;font-weight:600;opacity:.8}
+#sub{font-size:clamp(20px,4.6vmin,54px);font-weight:700;letter-spacing:.1em;min-height:1.2em}
+#next{font-size:clamp(13px,2.4vmin,26px);letter-spacing:.14em;opacity:0;transition:opacity .5s;min-height:1.2em}
+#next.on{opacity:.65}
 #hint{font-size:12px;opacity:.55}
 @media (max-width:700px){#ui{left:10px;right:10px;bottom:10px;padding:8px 10px}#hint{display:none}#ui label{white-space:nowrap}}
 @supports not (height:100svh){#stage{height:100vh}}
@@ -26,6 +29,8 @@ input{width:150px;vertical-align:middle}
   <div id="hud">
     <div id="clock"><span id="el">0:00</span><span id="tot">/ 3:00</span></div>
     <div id="phase">EARTH - RED</div>
+    <div id="sub">VOID</div>
+    <div id="next"></div>
   </div>
   <div id="ui">
     <button id="play">Pause</button>
@@ -42,6 +47,9 @@ const $=id=>document.getElementById(id);
 const canvas=$('canvas'),ctx=canvas.getContext('2d'),play=$('play'),reset=$('reset'),full=$('full'),duration=$('duration'),dv=$('dv'),el=$('el'),tot=$('tot'),phase=$('phase');
 let W=1,H=1,DPR=1,run=true,elapsed=0,startedAt=performance.now(),last=performance.now();
 const TAU=Math.PI*2;
+// Subsections: start times in a 30:00 score, stored as fractions so they scale with the Duration slider. tr = transition (🔜)
+const SECS=[[0,'VOID'],[30,'Prelude'],[300,'Formation'],[510,'Cooling'],[570,'Heartbeat',1],[600,'Cave Life'],[840,'Emergence'],[960,'Metamorphosis'],[1140,'Breath',1],[1200,'Sleep'],[1380,'Dreams'],[1620,'Awakening'],[1800,'VOID',1]].map(([s,n,tr])=>({p:s/1800,n,tr:!!tr}));
+const sub=$('sub'),nxt=$('next');
 
 // RED: lava-lamp metaballs, computed on a small offscreen field and scaled up smooth
 const LW=176,LH=100,lc=document.createElement('canvas');lc.width=LW;lc.height=LH;
@@ -107,7 +115,10 @@ function frame(now){
  updateClock();
  const d=run?dt:0;
  const t=Math.min(1,Math.max(0,elapsed/+duration.value));
- phase.textContent=t<.33?'EARTH - RED':t<.66?'LIFE - GREEN':'ASCENSION - BLUE';
+ phase.textContent=t<1/3?'EARTH - RED':t<2/3?'LIFE - GREEN':'ASCENSION - BLUE';
+ let si=0;while(si<SECS.length-1&&t>=SECS[si+1].p)si++;
+ const cs=SECS[si],sl=cs.n+(cs.tr?' 🔜':'');if(sub.textContent!==sl)sub.textContent=sl;
+ if(si<SECS.length-1){const rem=(SECS[si+1].p-t)*(+duration.value),nl='next: '+SECS[si+1].n;if(nxt.textContent!==nl)nxt.textContent=nl;nxt.classList.toggle('on',rem<=10)}else nxt.classList.remove('on');
  const wb=S(.61,.71,t),wr=1-S(.28,.38,t),wg=(1-wr)*(1-wb);
  const sc=Math.max(.8,H/900),Rm=Math.hypot(W,H)/2;
  const c1=S(.231,.33,t),c2=S(.561,.66,t),mx=(a,b,k)=>a+(b-a)*k,cm=(a,b,k)=>a.map((v,i)=>mx(v,b[i],k)|0).join(',');
